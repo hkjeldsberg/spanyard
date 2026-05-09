@@ -2,6 +2,7 @@ export const LEITNER_INTERVALS = [0, 1, 3, 7, 14, 30] as const; // index = box
 export const LEITNER_PROGRESS  = [0, 20, 40, 60, 80, 100] as const;
 export const NEW_WORDS_PER_SESSION = 10;
 export const MAX_REVIEW_PER_SESSION = 20;
+export const REINFORCEMENT_PER_SESSION = 4; // recent box-1/2 words mixed in
 
 export function nextBox(current: number, correct: boolean): number {
   if (correct) return Math.min(current + 1, 5);

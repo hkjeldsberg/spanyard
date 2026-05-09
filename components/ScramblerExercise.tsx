@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -19,8 +19,24 @@ function tokenize(sentence: string): string[] {
   return sentence.replace(/[.,!?;:]/g, "").split(/\s+/).filter(Boolean);
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export function ScramblerExercise({ english, sentence, word, box, isNew, progress, total, onAnswer, onExit }: Props) {
   const tokens = tokenize(sentence); // source of truth, never changes
+
+  // Shuffle on client only to avoid hydration mismatch
+  const [displayOrder, setDisplayOrder] = useState<number[]>(() => tokens.map((_, i) => i));
+  useEffect(() => {
+    setDisplayOrder(shuffle(tokens.map((_, i) => i)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sentence]);
 
   // selectedIndices: ordered list of token indices the user has picked
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
@@ -77,8 +93,8 @@ export function ScramblerExercise({ english, sentence, word, box, isNew, progres
         <div style={{ display: "inline-block", padding: "4px 10px", background: "#e8c14b", border: "2px solid #1a1a17", fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>
           SCRAMBLE · {isNew ? "NEW" : `BOX ${box}`}
         </div>
-        <div style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", marginTop: 14 }}>
-          "{english}"
+        <div style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.02em", marginTop: 14, fontStyle: "italic" }}>
+          {english}
         </div>
       </div>
 
@@ -103,7 +119,8 @@ export function ScramblerExercise({ english, sentence, word, box, isNew, progres
 
       {/* Tray — all words always visible, selected ones greyed */}
       <div style={{ margin: "20px 22px 0", display: "flex", flexWrap: "wrap", gap: 10 }}>
-        {tokens.map((w, i) => {
+        {displayOrder.map((i) => {
+          const w = tokens[i];
           const isSelected = selectedSet.has(i);
           return (
             <span

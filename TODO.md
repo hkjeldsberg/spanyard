@@ -17,3 +17,5 @@
 - "la is an important word" pattern — fixed: Claude prompt now explicitly forbids meta-commentary and using the English meaning inside the Spanish sentence; fallback templates are neutral
 - More spacing between input and hint suggestions — added 20px top padding to the input/button section
 - Scrambler: grey out selected words instead of removing — tray always shows all words; selected ones appear greyed/flat; clicking grey word deselects it; no animation jitter
+- Ignore stored English translations for sentence generation — Claude now receives only the Spanish word and generates + translates the sentence itself; sentence cache cleared
+- Scrambler English prompt quotes — removed " "; now displayed in italic

@@ -8,49 +8,60 @@ export interface GeneratedSentence {
   cloze: string;
 }
 
-// Fallback templates — used only when Claude fails, NOT cached in DB
-const FALLBACKS = [
-  (w: string) => ({ spanish: `Quiero ${w} ahora.`, english: `I want it now.`, cloze: `Quiero {{word}} ahora.` }),
-  (w: string) => ({ spanish: `¿Puedes usar ${w}?`, english: `Can you use it?`, cloze: `¿Puedes usar {{word}}?` }),
-  (w: string) => ({ spanish: `Ella tiene ${w}.`, english: `She has it.`, cloze: `Ella tiene {{word}}.` }),
-  (w: string) => ({ spanish: `Necesito ${w} hoy.`, english: `I need it today.`, cloze: `Necesito {{word}} hoy.` }),
-];
-
 export async function generateSentence(
   spanish: string,
-  english: string,
+  attempt = 0,
 ): Promise<GeneratedSentence> {
-  const translations = english.split(",").map((t) => t.trim()).filter(Boolean);
-  const chosenMeaning = translations[Math.floor(Math.random() * translations.length)];
-
   const msg = await client.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-haiku-4-5",
     max_tokens: 200,
-    system: `You are a Spanish language teacher. Generate one unique, natural A1-level Spanish example sentence.
-Return ONLY valid JSON, no markdown: {"spanish":"...","english":"...","cloze":"..."}
+    system: `You are a Spanish language teacher. Generate one unique, natural A1-level Spanish example sentence for a target word.
 
-Rules:
-- "spanish": a real, concrete everyday sentence that uses the target word naturally
-- "english": its English translation (of the full sentence, not the word)
-- "cloze": the Spanish sentence with ONLY the target word (the exact form as it appears) replaced by {{word}}
-- Max 10 words. Use real contexts: food, family, home, school, weather, daily actions.
-- NEVER say "X is an important word", "X is a common word", "I use the word X", or any meta-commentary
-- NEVER include the English meaning of the target word in the Spanish sentence
-- The sentence must be genuinely useful for learning the word in context`,
+    OUTPUT FORMAT:
+    Return ONLY a valid JSON object. Do not include markdown formatting, backticks, or any conversational text.
+    {"spanish": "string", "english": "string", "cloze": "string"}
+
+    CONSTRAINTS:
+    1. "spanish": A concrete, everyday sentence (max 10 words). Use simple vocabulary (A1 level).
+    2. "english": A natural English translation of the Spanish sentence.
+    3. "cloze": The Spanish sentence with the target word replaced by {{word}}.
+    4. No meta-commentary or explanations.
+
+    EXAMPLE:
+    Target: "manzana"
+    {"spanish": "Yo como una manzana roja.", "english": "I eat a red apple.", "cloze": "Yo como una {{word}} roja."}`,
     messages: [
       {
         role: "user",
-        content: `Target word: "${spanish}" (meaning: ${chosenMeaning}). Write one example sentence.`,
+        content: `Target Spanish word: "${spanish}"`,
       },
     ],
   });
 
-  const text = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
-  const clean = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean) as GeneratedSentence;
-}
+  const content = msg.content.find(c => c.type === "text");
+  const rawText = content ? content.text.trim() : "";
 
-export function fallbackSentence(spanish: string): GeneratedSentence {
-  const fn = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
-  return fn(spanish);
+  // 2. Extract JSON instead of replacing tags
+  // This finds the first '{' and the last '}' and takes everything in between
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  const clean = jsonMatch ? jsonMatch[0] : "";
+
+  let result: GeneratedSentence;
+
+  try {
+    if (!clean) throw new Error("No JSON found in response");
+    result = JSON.parse(clean);
+  } catch (e) {
+    if (attempt < 2) return generateSentence(spanish, attempt + 1);
+    throw new Error(`Failed to parse Claude response: ${e instanceof Error ? e.message : "Unknown error"}`);
+  }
+
+  // 3. Validation
+  if (!result.cloze?.includes("{{word}}")) {
+    if (attempt < 2) return generateSentence(spanish, attempt + 1);
+    throw new Error("Claude response missing {{word}} in cloze");
+  }
+
+
+  return result;
 }

@@ -3,9 +3,9 @@ import { supabaseServer } from "@/lib/supabase";
 import { generateSentence } from "@/lib/claude";
 
 export async function POST(req: NextRequest) {
-  const { word_id, spanish, english } = await req.json();
+  const { word_id, spanish } = await req.json();
 
-  if (!word_id || !spanish || !english) {
+  if (!word_id || !spanish) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json(existing);
 
   // Generate via Claude
-  const sentence = await generateSentence(spanish, english);
+  const sentence = await generateSentence(spanish);
 
   const { data, error } = await supabaseServer
     .schema("spanyard")

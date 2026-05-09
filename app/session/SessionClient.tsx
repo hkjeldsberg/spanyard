@@ -13,12 +13,18 @@ interface Exercise {
   pos: string | null;
   box: number;
   isNew: boolean;
+  isReinforcement: boolean;
   mode: "cloze" | "scrambler";
   hints: string[];
   sentence: { spanish: string; english: string; cloze: string };
 }
 
-export function SessionClient({ exercises }: { exercises: Exercise[] }) {
+interface Props {
+  exercises: Exercise[];
+  mode: string;
+}
+
+export function SessionClient({ exercises, mode }: Props) {
   const [idx, setIdx] = useState(0);
   const [done, setDone] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
@@ -37,8 +43,12 @@ export function SessionClient({ exercises }: { exercises: Exercise[] }) {
     else setIdx((i) => i + 1);
   }
 
-  function handleExit() {
-    router.push("/today");
+  function handleExit() { router.push("/today"); }
+
+  function handleContinue() {
+    // Navigate to a fresh session — builder picks the next unseen words
+    router.push(`/session?mode=${mode}&t=${Date.now()}`);
+    router.refresh();
   }
 
   if (exercises.length === 0) {
@@ -66,10 +76,20 @@ export function SessionClient({ exercises }: { exercises: Exercise[] }) {
           <div style={{ marginTop: 24, height: 14, background: "#fbf5e6", border: "2px solid #1a1a17", position: "relative" }}>
             <div style={{ position: "absolute", inset: 0, width: `${pct}%`, background: pct >= 80 ? "#2a6a3e" : "#d24f2e", borderRight: pct > 0 ? "2px solid #1a1a17" : "none" }} />
           </div>
-          <button onClick={handleExit} style={{ marginTop: 24, width: "100%", padding: "22px 18px", background: "#1a1a17", color: "#fff", border: "2px solid #1a1a17", fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: "pointer" }}>
-            Back to Today →
+
+          {/* Continue → next batch */}
+          <button
+            onClick={handleContinue}
+            style={{ marginTop: 24, width: "100%", padding: "22px 18px", background: "#d24f2e", color: "#fff", border: "2px solid #1a1a17", fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+          >
+            <span>Continue →</span>
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, opacity: 0.8 }}>next 10 words</span>
           </button>
-          <button onClick={() => router.push("/lexicon")} style={{ marginTop: 10, width: "100%", padding: "14px 18px", background: "transparent", color: "#1a1a17", border: "2px solid #1a1a17", fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", textTransform: "uppercase", cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>
+
+          <button onClick={handleExit} style={{ marginTop: 10, width: "100%", padding: "16px 18px", background: "#1a1a17", color: "#fff", border: "2px solid #1a1a17", fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: "pointer" }}>
+            Back to Today
+          </button>
+          <button onClick={() => router.push("/lexicon")} style={{ marginTop: 8, width: "100%", padding: "14px 18px", background: "transparent", color: "#1a1a17", border: "2px solid #1a1a17", fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", textTransform: "uppercase", cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>
             View Lexicon →
           </button>
         </div>
