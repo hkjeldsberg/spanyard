@@ -150,14 +150,14 @@ export function LexiconGrid({ cells }: Props) {
         <span>tap to inspect</span>
       </div>
 
-      {/* Inspect overlay */}
+      {/* Inspect overlay — fixed so it's never clipped */}
       <AnimatePresence>
         {inspected && (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 30 }}
-            style={{ position: "absolute", inset: 0, top: "auto", background: "#fbf5e6", border: "2px solid #1a1a17", borderBottom: "none", padding: "20px 22px 30px", zIndex: 10 }}
+            style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 390, background: "#fbf5e6", border: "2px solid #1a1a17", borderBottom: "none", padding: "20px 22px 40px", zIndex: 100 }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>

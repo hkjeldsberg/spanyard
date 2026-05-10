@@ -14,7 +14,7 @@ interface Props {
   isNew: boolean;
   progress: number;
   total: number;
-  hints: string[]; // 3 wrong options for hint
+  hints: string[];
   onAnswer: (correct: boolean) => void;
   onExit: () => void;
 }
@@ -27,26 +27,41 @@ function renderCloze(cloze: string, state: "blank" | "correct" | "wrong", typed:
     <span>
       {parts[0]}
       <span style={{ display: "inline-block", padding: "0 12px", margin: "0 2px", background: bg, color: "#fff", border: "2px solid #1a1a17", transform: "translateY(-2px)", fontWeight: 600, minWidth: 80, textAlign: "center" }}>
-        {state !== "blank" ? typed : "​    "}
+        {state !== "blank" ? typed : "​    "}
       </span>
       {parts[1]}
     </span>
   );
 }
 
+// Extract the exact word form from the sentence that was replaced by {{word}}.
+// e.g. spanish="Yo hablo español", cloze="Yo {{word}} español" → "hablo"
+function extractClozeAnswer(spanish: string, cloze: string): string {
+  const parts = cloze.split("{{word}}");
+  if (parts.length < 2) return "";
+  const before = parts[0];
+  const after = parts[1];
+  const extracted = spanish.slice(before.length, spanish.length - after.length).trim();
+  return extracted.replace(/[.,!?;:]$/, "").trim();
+}
+
 export function ClozeExercise({ spanish, english, cloze, word, wordMeaning, wordPos, box, isNew, progress, total, hints, onAnswer, onExit }: Props) {
   const [typed, setTyped] = useState("");
   const [state, setState] = useState<"blank" | "correct" | "wrong">("blank");
   const [showHints, setShowHints] = useState(false);
+  const [pressing, setPressing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The form actually used in the sentence (may differ from infinitive stored as `word`)
+  const correctForm = extractClozeAnswer(spanish, cloze) || word;
 
   const submitted = state !== "blank";
 
   function submit(answer: string) {
     if (submitted) return;
-    const ok = answer.trim().toLowerCase() === word.toLowerCase();
+    const ok = answer.trim().toLowerCase() === correctForm.toLowerCase();
     setState(ok ? "correct" : "wrong");
-    setTyped(ok ? word : answer.trim() || word); // show correct word if blank submitted
+    setTyped(ok ? correctForm : answer.trim() || correctForm);
   }
 
   function handleKey(e: React.KeyboardEvent) {
@@ -59,7 +74,7 @@ export function ClozeExercise({ spanish, english, cloze, word, wordMeaning, word
     submit(opt);
   }
 
-  const allHintOptions = [...hints, word].sort(() => Math.random() - 0.5);
+  const allHintOptions = [...hints, correctForm].sort(() => Math.random() - 0.5);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#f0e8d8", fontFamily: "'Space Grotesk', sans-serif", color: "#1a1a17" }}>
@@ -89,20 +104,31 @@ export function ClozeExercise({ spanish, english, cloze, word, wordMeaning, word
         </div>
       </div>
 
-      {/* Result label */}
+      {/* Word reveal after check */}
       <AnimatePresence>
         {submitted && (
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            style={{ margin: "16px 22px 0", padding: "10px 14px", background: state === "correct" ? "#d1fae5" : "#fee2e2", border: `2px solid ${state === "correct" ? "#2a6a3e" : "#c0392b"}`, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}
+            style={{ margin: "16px 22px 0", padding: "14px", background: state === "correct" ? "#d1fae5" : "#fee2e2", border: `2px solid ${state === "correct" ? "#2a6a3e" : "#c0392b"}` }}
           >
-            {state === "correct" ? `✓ Correct!` : `✗ Answer: "${word}"`}
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: state === "correct" ? "#2a6a3e" : "#c0392b", letterSpacing: "0.08em" }}>
+              {state === "correct" ? "CORRECT" : "WRONG"}
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", marginTop: 4 }}>{correctForm}</div>
+            {correctForm.toLowerCase() !== word.toLowerCase() && (
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#65615a", marginTop: 2 }}>
+                infinitive: {word}
+              </div>
+            )}
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "#65615a", marginTop: 2 }}>
+              {wordPos ? `${wordPos} · ` : ""}{wordMeaning}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Hint options (revealed on demand) */}
+      {/* Hint options */}
       <AnimatePresence>
         {showHints && !submitted && (
           <motion.div
@@ -113,7 +139,11 @@ export function ClozeExercise({ spanish, english, cloze, word, wordMeaning, word
           >
             {allHintOptions.map((opt) => (
               <button key={opt} onClick={() => pickHint(opt)}
-                style={{ padding: "10px 0", background: "#fbf5e6", color: "#1a1a17", border: "2px solid #1a1a17", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>
+                style={{ padding: "10px 0", background: "#fbf5e6", color: "#1a1a17", border: "2px solid #1a1a17", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, cursor: "pointer", transition: "transform 0.08s, background 0.08s" }}
+                onPointerDown={(e) => (e.currentTarget.style.transform = "translate(2px,2px)")}
+                onPointerUp={(e) => (e.currentTarget.style.transform = "")}
+                onPointerLeave={(e) => (e.currentTarget.style.transform = "")}
+              >
                 {opt}
               </button>
             ))}
@@ -146,24 +176,41 @@ export function ClozeExercise({ spanish, english, cloze, word, wordMeaning, word
             <button
               onClick={() => setShowHints((h) => !h)}
               style={{ flex: 1, padding: "14px 0", background: showHints ? "#e8c14b" : "#fbf5e6", color: "#1a1a17", border: "2px solid #1a1a17", fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}
+              onPointerDown={(e) => (e.currentTarget.style.transform = "translate(2px,2px)")}
+              onPointerUp={(e) => (e.currentTarget.style.transform = "")}
+              onPointerLeave={(e) => (e.currentTarget.style.transform = "")}
             >
-              {showHints ? "Hide Hints" : "Hint?"}
+              {showHints ? "Hide" : "Hint?"}
             </button>
           )}
           {!submitted ? (
             <button
               onClick={() => submit(typed)}
               disabled={typed.trim().length === 0}
-              style={{ flex: 2, padding: "14px 0", background: typed.trim() ? "#1a1a17" : "#65615a", color: "#fff", border: "2px solid #1a1a17", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, textTransform: "uppercase", cursor: typed.trim() ? "pointer" : "default" }}
+              onPointerDown={() => setPressing(true)}
+              onPointerUp={() => setPressing(false)}
+              onPointerLeave={() => setPressing(false)}
+              style={{
+                flex: 2, padding: "14px 0",
+                background: typed.trim() ? "#1a1a17" : "#65615a", color: "#fff",
+                border: "2px solid #1a1a17",
+                fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, textTransform: "uppercase",
+                cursor: typed.trim() ? "pointer" : "default",
+                transform: pressing && typed.trim() ? "translate(2px,2px)" : undefined,
+                transition: "transform 0.08s",
+              }}
             >
-              Check ↗
+              CHECK
             </button>
           ) : (
             <button
               onClick={() => onAnswer(state === "correct")}
-              style={{ flex: 1, padding: "16px 0", background: "#d24f2e", color: "#fff", border: "2px solid #1a1a17", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em", textTransform: "uppercase", cursor: "pointer" }}
+              onPointerDown={(e) => (e.currentTarget.style.transform = "translate(2px,2px)")}
+              onPointerUp={(e) => (e.currentTarget.style.transform = "")}
+              onPointerLeave={(e) => (e.currentTarget.style.transform = "")}
+              style={{ flex: 1, padding: "16px 0", background: "#d24f2e", color: "#fff", border: "2px solid #1a1a17", fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em", textTransform: "uppercase", cursor: "pointer", transition: "transform 0.08s" }}
             >
-              Continue →
+              CONTINUE
             </button>
           )}
         </div>

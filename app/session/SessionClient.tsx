@@ -28,6 +28,7 @@ export function SessionClient({ exercises, mode }: Props) {
   const [idx, setIdx] = useState(0);
   const [done, setDone] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [navigating, setNavigating] = useState(false);
   const router = useRouter();
 
   const current = exercises[idx];
@@ -43,12 +44,15 @@ export function SessionClient({ exercises, mode }: Props) {
     else setIdx((i) => i + 1);
   }
 
-  function handleExit() { router.push("/today"); }
+  function handleExit() {
+    setNavigating(true);
+    window.location.href = "/today";
+  }
 
   function handleContinue() {
-    // Navigate to a fresh session — builder picks the next unseen words
-    router.push(`/session?mode=${mode}&t=${Date.now()}`);
-    router.refresh();
+    setNavigating(true);
+    // Force a real navigation so the server component re-runs and fetches fresh words
+    window.location.href = `/session?mode=${mode}`;
   }
 
   if (exercises.length === 0) {
@@ -80,13 +84,14 @@ export function SessionClient({ exercises, mode }: Props) {
           {/* Continue → next batch */}
           <button
             onClick={handleContinue}
-            style={{ marginTop: 24, width: "100%", padding: "22px 18px", background: "#d24f2e", color: "#fff", border: "2px solid #1a1a17", fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+            disabled={navigating}
+            style={{ marginTop: 24, width: "100%", padding: "22px 18px", background: navigating ? "#65615a" : "#d24f2e", color: "#fff", border: "2px solid #1a1a17", fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: navigating ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "background 0.15s" }}
           >
-            <span>Continue →</span>
+            <span>{navigating ? "Loading…" : "Continue →"}</span>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, opacity: 0.8 }}>next 10 words</span>
           </button>
 
-          <button onClick={handleExit} style={{ marginTop: 10, width: "100%", padding: "16px 18px", background: "#1a1a17", color: "#fff", border: "2px solid #1a1a17", fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: "pointer" }}>
+          <button onClick={handleExit} disabled={navigating} style={{ marginTop: 10, width: "100%", padding: "16px 18px", background: "#1a1a17", color: "#fff", border: "2px solid #1a1a17", fontSize: 16, fontWeight: 600, letterSpacing: "-0.02em", textTransform: "uppercase", cursor: navigating ? "default" : "pointer" }}>
             Back to Today
           </button>
           <button onClick={() => router.push("/lexicon")} style={{ marginTop: 8, width: "100%", padding: "14px 18px", background: "transparent", color: "#1a1a17", border: "2px solid #1a1a17", fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", textTransform: "uppercase", cursor: "pointer", fontFamily: "'JetBrains Mono', monospace" }}>
@@ -130,6 +135,8 @@ export function SessionClient({ exercises, mode }: Props) {
                 english={current.sentence.english}
                 sentence={current.sentence.spanish}
                 word={current.spanish}
+                wordMeaning={current.english}
+                wordPos={current.pos}
                 box={current.box}
                 isNew={current.isNew}
                 progress={idx + 1}

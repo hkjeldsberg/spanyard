@@ -1,21 +1,29 @@
 # IN PROGRESS
+- WHen i click "CONTINUE" nothing happens - no loading indicator and no page change. Why?
 
 # COMPLETED
-- Some words (e.g. "se") had weird formatting — cleaned 100 words (fi/fl ligatures, [annotation] brackets, stray HTML entities). Run `npx tsx scripts/clean-words.ts` anytime.
-- X button does not work — now a real `<button>` with `onExit` → navigates to /today
-- Design: top-right text showing small boxes — replaced ▣▢ Unicode block chars with plain "LEXICON" text button
-- Search button in lexicon does not work — now opens an inline search input; filters by Spanish or English, tap a result to inspect it
-- "session_start" text on home page — removed
-- Home page mode selection — "Begin →" (mixed), + two smaller buttons: "Cloze only" and "Scramble only" with ?mode= param
-- Session page: remove word progress box (gives away the answer) — word card with LeitnerBar removed from Cloze screen
-- Session Cloze: type the answer instead of picking — text input + Enter/Check button; optional "Hint?" toggle reveals 4 choices
-- Session Scramble: more spacing before bottom buttons — increased padding
-- Session Scramble: click away words — was already working (tap built word → returns to tray)
-- Session Scramble: long press to move words — 450ms long press on built word moves it back to tray
-- Sentences all the same — cleared cached sentences; improved Claude prompt for natural, contextual sentences; picks random translation for multi-meaning words
-- Every sentence must be unique — Claude generates a unique sentence per word; fallbacks are random templates, never cached in DB so Claude retries next session
-- "la is an important word" pattern — fixed: Claude prompt now explicitly forbids meta-commentary and using the English meaning inside the Spanish sentence; fallback templates are neutral
-- More spacing between input and hint suggestions — added 20px top padding to the input/button section
-- Scrambler: grey out selected words instead of removing — tray always shows all words; selected ones appear greyed/flat; clicking grey word deselects it; no animation jitter
-- Ignore stored English translations for sentence generation — Claude now receives only the Spanish word and generates + translates the sentence itself; sentence cache cleared
-- Scrambler English prompt quotes — removed " "; now displayed in italic
+- Drop indicator while dragging — terracotta 3px bar appears between chips showing exactly where the word will land on release
+- In scramble, let me move words with my finger as well as pressing — drag-to-reorder within the built area (needs clarification: reorder only, or also drag back to tray?)
+- This feature is buggy: It only lets me drag horizontally and sometimes words are un-picked
+- Some words (e.g. "se") had weird formatting — cleaned 100 words
+- X button does not work — fixed
+- Design: top-right boxes — replaced with LEXICON text button
+- Search button in lexicon — working inline search
+- "session_start" text — removed
+- Home page mode selection — mixed / cloze only / scramble only
+- Session page: remove word progress box — removed from Cloze
+- Session Cloze: type answer + Hint? toggle
+- Session Scramble: spacing, click-away, long press
+- Sentences all the same — fixed with unique Claude prompts
+- Every sentence unique / no meta-commentary — fixed
+- Spacing between input and hints — fixed
+- Scrambler: grey out instead of remove — fixed
+- Ignore stored English translations — Claude generates + translates itself
+- Scrambler quotes — removed, italic
+- Review/New counters — these are live per-day: Review = words whose Leitner interval has expired today; New = words never seen. Both update after each session.
+- Button press feedback — all buttons now shift translate(2px,2px) on press (Cloze, Scramble, home page)
+- Check shows word being learned — both Cloze and Scramble now reveal the word + meaning after pressing Check
+- Reset disabled after Check — no Reset button shown post-check
+- "TODAY." headline — replaced with dynamic text: "X due, Y new.", "All clear.", etc.
+- Lexicon popup cut off — changed from position:absolute to position:fixed anchored to bottom of viewport
+- Emoji in CHECK — removed from both Cloze and Scramble; buttons now say CHECK / CONTINUE / RESET
