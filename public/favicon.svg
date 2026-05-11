@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <clipPath id="rr">
+      <rect width="32" height="32" rx="7" ry="7"/>
+    </clipPath>
+  </defs>
+  <!-- Spanish flag: red top (25%), yellow middle (50%), red bottom (25%) -->
+  <rect width="32" height="32" rx="7" ry="7" fill="#c60b1e"/>
+  <rect y="8" width="32" height="16" fill="#ffc400" clip-path="url(#rr)"/>
+  <!-- Thin dark outline -->
+  <rect width="32" height="32" rx="7" ry="7" fill="none" stroke="#00000022" stroke-width="1"/>
+</svg>

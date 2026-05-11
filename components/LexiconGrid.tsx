@@ -15,22 +15,29 @@ interface Props {
   cells: WordCell[];
 }
 
+const p0 = "#f0e8d8";
+const p1 = "#fbe3d0";
+const p2 = "#f0a071";
+const p3 = "#dc5a2a";
+const p4 = "#7a2410";
+const p5 = "#1f5d3a";
+
 const BOX_COLORS: Record<number, string> = {
-  0: "#f0e8d8",
-  1: "#f5d4c2",
-  2: "#ee9c7c",
-  3: "#e57350",
-  4: "#d24f2e",
-  5: "#2a6a3e",
+  0: p0,
+  1: p1,
+  2: p2,
+  3: p3,
+  4: p4,
+  5: p5,
 };
 
 const LEGEND = [
-  ["○", "#f0e8d8"],
-  ["1", "#f5d4c2"],
-  ["2", "#ee9c7c"],
-  ["3", "#e57350"],
-  ["4", "#d24f2e"],
-  ["5 *", "#2a6a3e"],
+  ["○", p0],
+  ["1", p1],
+  ["2", p2],
+  ["3", p3],
+  ["4", p4],
+  ["5 *", p5],
 ] as const;
 
 export function LexiconGrid({ cells }: Props) {

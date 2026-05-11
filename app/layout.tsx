@@ -18,6 +18,12 @@ export const metadata: Metadata = {
   title: "Spanyard",
   description: "Master the 1,000 most common Spanish words",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/favicon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
