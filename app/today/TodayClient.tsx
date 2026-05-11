@@ -22,11 +22,11 @@ export function TodayClient({ reviewCount, newCount, score, started, dateStr }: 
     router.push(href);
   }
 
-  const btn = (label: string, sub: string | null, href: string, key: string, big = false) => (
+  const btn = (label: string, sub: string | null, href: string, key: string, big = false, ignoreStyle = false) => (
     <button
       onClick={() => go(href, key)}
       disabled={loading !== null}
-      style={{
+      style={ignoreStyle ? undefined : {
         width: "100%",
         padding: big ? "22px 18px" : "14px",
         border: "2px solid #1a1a17",
@@ -65,12 +65,6 @@ export function TodayClient({ reviewCount, newCount, score, started, dateStr }: 
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.05em" }}>
             SPANYARD / {dateStr}
           </div>
-          <button
-            onClick={() => go("/lexicon", "lexicon")}
-            style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: "0.08em", color: "#1a1a17", background: "transparent", border: "2px solid #1a1a17", padding: "3px 8px", cursor: "pointer" }}
-          >
-            LEXICON
-          </button>
         </div>
 
         {/* Headline — replace "Today." with something useful */}

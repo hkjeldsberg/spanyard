@@ -164,7 +164,7 @@ export function LexiconGrid({ cells }: Props) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 30 }}
-            style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 390, background: "#fbf5e6", border: "2px solid #1a1a17", borderBottom: "none", padding: "20px 22px 40px", zIndex: 100 }}
+            style={{  bottom: 0, left: "50%", alignSelf: "center", transform: "translateX(-50%)", width: "90%", maxWidth: 390, background: "#fbf5e6", border: "2px solid #1a1a17", padding: "20px 22px 40px", zIndex: 100 }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
