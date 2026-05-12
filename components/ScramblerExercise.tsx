@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { PanInfo } from "framer-motion";
 
 interface Props {
   english: string;
@@ -24,6 +23,17 @@ interface PlacedWord {
   text: string;
 }
 
+interface DragState {
+  pos: number;
+  startX: number;
+  startY: number;
+  curX: number;
+  curY: number;
+  dropIndex: number;
+  chipW: number;
+  chipH: number;
+}
+
 function tokenize(s: string): string[] {
   return s.replace(/[.,!?;:]/g, "").split(/\s+/).filter(Boolean);
 }
@@ -38,8 +48,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 // Returns insert-before index (0 = before first, n = after last).
-// Uses edge-based detection: measures distance from pointer to the left/right
-// edge of each chip, so the first slot (left of chip 0) is a full-size target.
+// Skips the dragging chip so its moved position doesn't skew the math.
 function getInsertIndex(
   px: number,
   py: number,
@@ -50,15 +59,13 @@ function getInsertIndex(
   let bestDist = Infinity;
 
   refs.forEach((el, i) => {
-    if (!el) return;
+    if (!el || i === draggingPos) return;
     const r = el.getBoundingClientRect();
     const midY = r.top + r.height / 2;
 
-    // Gap BEFORE chip i — anchor at left edge
     const dBefore = Math.hypot(px - r.left, py - midY);
     if (dBefore < bestDist) { bestDist = dBefore; best = i; }
 
-    // Gap AFTER chip i — anchor at right edge (= "before chip i+1")
     const dAfter = Math.hypot(px - r.right, py - midY);
     if (dAfter < bestDist) { bestDist = dAfter; best = i + 1; }
   });
@@ -84,8 +91,7 @@ export function ScramblerExercise({
   const [checked, setChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [seq, setSeq] = useState(0);
-  const [draggingPos, setDraggingPos] = useState<number | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
 
   const chipRefs = useRef<(HTMLElement | null)[]>([]);
   const selectedSet = new Set(placed.map((p) => p.tokenIdx));
@@ -113,36 +119,44 @@ export function ScramblerExercise({
     else addFromTray(tokenIdx);
   }
 
-  function handleDragStart(pos: number) {
-    setDraggingPos(pos);
-    setDropIndex(pos);
+  function onChipPointerDown(e: React.PointerEvent<HTMLSpanElement>, pos: number) {
+    if (checked) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const r = e.currentTarget.getBoundingClientRect();
+    setDrag({
+      pos,
+      startX: e.clientX, startY: e.clientY,
+      curX: e.clientX, curY: e.clientY,
+      dropIndex: pos,
+      chipW: r.width, chipH: r.height,
+    });
   }
 
-  function handleDrag(pos: number, info: PanInfo) {
-    const idx = getInsertIndex(info.point.x, info.point.y, pos, chipRefs.current);
-    setDropIndex(idx);
+  function onChipPointerMove(e: React.PointerEvent<HTMLSpanElement>, pos: number) {
+    if (!drag || drag.pos !== pos) return;
+    const di = getInsertIndex(e.clientX, e.clientY, drag.pos, chipRefs.current);
+    setDrag((d) => d ? { ...d, curX: e.clientX, curY: e.clientY, dropIndex: di } : null);
   }
 
-  function handleDragEnd(pos: number, info: PanInfo) {
-    const moved = Math.abs(info.offset.x) + Math.abs(info.offset.y);
-    const targetIdx = dropIndex;
-    setDraggingPos(null);
-    setDropIndex(null);
-
+  function onChipPointerUp(e: React.PointerEvent<HTMLSpanElement>, pos: number) {
+    if (!drag || drag.pos !== pos) return;
+    const moved = Math.abs(e.clientX - drag.startX) + Math.abs(e.clientY - drag.startY);
     if (moved < TAP_THRESHOLD) {
       setPlaced((prev) => prev.filter((_, j) => j !== pos));
-      return;
+    } else {
+      const ti = drag.dropIndex;
+      if (ti !== pos && ti !== pos + 1) {
+        setPlaced((prev) => {
+          const next = [...prev];
+          const [item] = next.splice(pos, 1);
+          const adjusted = ti > pos ? ti - 1 : ti;
+          next.splice(adjusted, 0, item);
+          return next;
+        });
+      }
     }
-
-    if (targetIdx === null || targetIdx === pos || targetIdx === pos + 1) return;
-
-    setPlaced((prev) => {
-      const next = [...prev];
-      const [item] = next.splice(pos, 1);
-      const adjusted = targetIdx > pos ? targetIdx - 1 : targetIdx;
-      next.splice(adjusted, 0, item);
-      return next;
-    });
+    setDrag(null);
   }
 
   function reset() { setPlaced([]); setChecked(false); setSeq(0); }
@@ -181,7 +195,7 @@ export function ScramblerExercise({
         display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center",
         alignContent: "flex-start", transition: "border-color 0.2s",
       }}>
-        {placed.length === 0 && draggingPos === null && (
+        {placed.length === 0 && !drag && (
           <span style={{ color: "#65615a", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, pointerEvents: "none" }}>
             tap or drag words below →
           </span>
@@ -189,38 +203,32 @@ export function ScramblerExercise({
 
         {placed.map((p, pos) => (
           <div key={p.id} style={{ display: "contents" }}>
-            {/* Drop indicator — appears BEFORE chip[pos] when dropIndex === pos */}
-            {draggingPos !== null && dropIndex === pos && draggingPos !== pos && draggingPos !== pos - 1 && (
+            {drag && drag.dropIndex === pos && drag.pos !== pos && drag.pos !== pos - 1 && (
               <div style={{ width: 3, minHeight: 36, background: "#d24f2e", borderRadius: 2, alignSelf: "stretch", flexShrink: 0 }} />
             )}
 
-            <motion.span
-              layout
-              ref={(el) => { chipRefs.current[pos] = el as HTMLElement | null; }}
-              drag={!checked}
-              dragMomentum={false}
-              onDragStart={() => handleDragStart(pos)}
-              onDrag={(_, info) => handleDrag(pos, info)}
-              onDragEnd={(_, info) => handleDragEnd(pos, info)}
-              whileDrag={{ scale: 1.08, zIndex: 20, boxShadow: "5px 5px 0 #d24f2e" }}
+            <span
+              ref={(el) => { chipRefs.current[pos] = el; }}
+              onPointerDown={(e) => onChipPointerDown(e, pos)}
+              onPointerMove={(e) => onChipPointerMove(e, pos)}
+              onPointerUp={(e) => onChipPointerUp(e, pos)}
+              onPointerCancel={() => setDrag(null)}
               style={{
                 padding: "8px 14px",
                 background: "#1a1a17", color: "#fff",
                 fontSize: 17, fontWeight: 600,
-                boxShadow: "3px 3px 0 #d24f2e",
+                boxShadow: drag?.pos === pos ? "none" : "3px 3px 0 #d24f2e",
                 cursor: checked ? "default" : "grab",
                 userSelect: "none", touchAction: "none",
-                opacity: draggingPos === pos ? 0.35 : 1,
-                position: "relative",
+                opacity: drag?.pos === pos ? 0.25 : 1,
               }}
             >
               {p.text}
-            </motion.span>
+            </span>
           </div>
         ))}
 
-        {/* Drop indicator after last chip */}
-        {draggingPos !== null && dropIndex === placed.length && draggingPos !== placed.length - 1 && (
+        {drag && drag.dropIndex === placed.length && drag.pos !== placed.length - 1 && (
           <div style={{ width: 3, minHeight: 36, background: "#d24f2e", borderRadius: 2, alignSelf: "stretch", flexShrink: 0 }} />
         )}
       </div>
@@ -315,6 +323,28 @@ export function ScramblerExercise({
           </button>
         )}
       </div>
+
+      {/* Ghost chip — fixed position, follows pointer during drag */}
+      {drag && placed[drag.pos] && (
+        <div
+          style={{
+            position: "fixed",
+            left: drag.curX - drag.chipW / 2,
+            top: drag.curY - drag.chipH / 2,
+            width: drag.chipW,
+            padding: "8px 14px",
+            background: "#1a1a17", color: "#fff",
+            fontSize: 17, fontWeight: 600,
+            boxShadow: "5px 5px 0 #d24f2e",
+            zIndex: 9999,
+            pointerEvents: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transform: "scale(1.08)",
+          }}
+        >
+          {placed[drag.pos].text}
+        </div>
+      )}
     </div>
   );
 }

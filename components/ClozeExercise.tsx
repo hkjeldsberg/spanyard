@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -63,6 +63,18 @@ export function ClozeExercise({ spanish, english, cloze, word, wordMeaning, word
     setState(ok ? "correct" : "wrong");
     setTyped(ok ? correctForm : answer.trim() || correctForm);
   }
+
+  useEffect(() => {
+    if (!submitted) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        onAnswer(state === "correct");
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [submitted, state]);
 
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !submitted) submit(typed);

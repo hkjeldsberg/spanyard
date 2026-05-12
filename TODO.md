@@ -1,7 +1,9 @@
 # IN PROGRESS
-- WHen i click "CONTINUE" nothing happens - no loading indicator and no page change. Why?
+- When "Continue" shows in sessions, let me contineu by pressing space or enter,
+- The drag and drop is completely bugged out. Fix
 
 # COMPLETED
+- WHen i click "CONTINUE" nothing happens - no loading indicator and no page change. Why?
 - Drop indicator while dragging — terracotta 3px bar appears between chips showing exactly where the word will land on release
 - In scramble, let me move words with my finger as well as pressing — drag-to-reorder within the built area (needs clarification: reorder only, or also drag back to tray?)
 - This feature is buggy: It only lets me drag horizontally and sometimes words are un-picked

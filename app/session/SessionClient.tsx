@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ClozeExercise } from "@/components/ClozeExercise";
@@ -32,6 +32,18 @@ export function SessionClient({ exercises, mode }: Props) {
   const router = useRouter();
 
   const current = exercises[idx];
+
+  useEffect(() => {
+    if (!done) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        if (!navigating) handleContinue();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [done, navigating]);
 
   async function handleAnswer(correct: boolean) {
     setScore((s) => ({ correct: s.correct + (correct ? 1 : 0), total: s.total + 1 }));
